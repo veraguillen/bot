@@ -2,14 +2,15 @@ name: Build and Deploy to Azure Web App
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 env:
-  RESOURCE_GROUP: whatsapp-bot-rg
-  ACR_NAME: whatsappbotacr  # Reemplaza con tu ACR_NAME
-  WEBAPP_NAME: whatsapp-bot  # Reemplaza con tu WEBAPP_NAME
+  RESOURCE_GROUP: beta-bot
+  ACR_NAME: chat2025
+  WEBAPP_NAME: chat-app-4313
   DOCKER_IMAGE: whatsapp-bot-image
+  LOCATION: mexicocentral
 
 jobs:
   build-and-deploy:
@@ -47,6 +48,7 @@ jobs:
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
     - name: Deploy to Azure Web App
+      id: deploy
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.WEBAPP_NAME }}
@@ -55,15 +57,24 @@ jobs:
 
     - name: Update Web App Settings
       run: |
-        # Actualizar la configuración de la Web App
-        az webapp config appsettings set \
+        # Configurar el comando de inicio
+        az webapp config set \
           --resource-group ${{ env.RESOURCE_GROUP }} \
           --name ${{ env.WEBAPP_NAME }} \
-          --settings \
-            DOCKER_REGISTRY_SERVER_URL=https://${{ env.ACR_NAME }}.azurecr.io \
-            DOCKER_REGISTRY_SERVER_USERNAME=${{ secrets.ACR_USERNAME }} \
-            DOCKER_REGISTRY_SERVER_PASSWORD=${{ secrets.ACR_PASSWORD }} \
-            WEBSITES_PORT=8000
+          --startup-file "./startup.sh"
+        
+        # Configurar las variables de entorno desde .env
+        while IFS= read -r line || [ -n "$line" ]; do
+          if [[ -n "$line" && ! "$line" =~ ^[[:space:]]*# ]]; then
+            key=$(echo $line | cut -d '=' -f1)
+            value=$(echo $line | cut -d '=' -f2- | sed 's/"/\\"/g')
+            echo "Setting $key"
+            az webapp config appsettings set \
+              --name ${{ env.WEBAPP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --settings "$key=$value"
+          fi
+        done < .env
 
     - name: Verify deployment
       run: |
