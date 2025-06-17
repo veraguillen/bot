@@ -1,16 +1,20 @@
+# Nombre del Workflow
 name: Build and Deploy to Azure Web App
 
+# Disparadores (Triggers)
 on:
+  # Se activa en cada push a la rama 'master' (tu rama principal)
   push:
     branches: [ "master" ]
+  # Permite ejecutarlo manualmente desde la interfaz de GitHub
   workflow_dispatch:
 
+# Variables de Entorno Globales para el Workflow
 env:
-  RESOURCE_GROUP: beta-bot
-  ACR_NAME: chat2025
-  WEBAPP_NAME: chat-app-4313
-  DOCKER_IMAGE: whatsapp-bot-image
-  LOCATION: mexicocentral
+  RESOURCE_GROUP: "beta-bot"
+  ACR_NAME: "chat2025"
+  WEBAPP_NAME: "chat-app-4313"
+  DOCKER_IMAGE_NAME: "whatsapp-bot-image" # Nombre de la imagen en ACR
 
 jobs:
   build-and-deploy:
@@ -18,65 +22,44 @@ jobs:
     environment: production
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Login to ACR
-      uses: azure/docker-login@v1
-      with:
-        login-server: ${{ env.ACR_NAME }}.azurecr.io
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
+      - name: Login to Azure Container Registry (ACR)
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Build and push image to ACR
-      run: |
-        # Obtener el SHA del commit para etiquetar la imagen
-        IMAGE_TAG=$(git rev-parse --short HEAD)
-        
-        # Construir la imagen
-        docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE }}:$IMAGE_TAG .
-        
-        # Subir la imagen
-        docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE }}:$IMAGE_TAG
-        
-        # Guardar el tag para el siguiente paso
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+      - name: Build and Push Docker image to ACR
+        run: |
+          # Usamos el SHA del commit para una etiqueta de imagen única e inmutable
+          IMAGE_TAG=${{ github.sha }}
+          
+          # Construimos y subimos la imagen en un solo paso
+          docker build . -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
 
-    - name: Deploy to Azure Web App
-      id: deploy
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: ${{ env.WEBAPP_NAME }}
-        resource-group: ${{ env.RESOURCE_GROUP }}
-        images: ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}
+      - name: Deploy to Azure Web App
+        id: deploy
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.WEBAPP_NAME }}
+          # El grupo de recursos es útil pero no estrictamente necesario si el app-name es único.
+          # Lo dejamos por claridad.
+          resource-group: ${{ env.RESOURCE_GROUP }}
+          images: '${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}'
 
-    - name: Update Web App Settings
-      run: |
-        # Configurar el comando de inicio
-        az webapp config set \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --name ${{ env.WEBAPP_NAME }} \
-          --startup-file "./startup.sh"
-        
-        # Configurar las variables de entorno desde .env
-        while IFS= read -r line || [ -n "$line" ]; do
-          if [[ -n "$line" && ! "$line" =~ ^[[:space:]]*# ]]; then
-            key=$(echo $line | cut -d '=' -f1)
-            value=$(echo $line | cut -d '=' -f2- | sed 's/"/\\"/g')
-            echo "Setting $key"
-            az webapp config appsettings set \
-              --name ${{ env.WEBAPP_NAME }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --settings "$key=$value"
-          fi
-        done < .env
-
-    - name: Verify deployment
-      run: |
-        echo "Verificando despliegue..."
-        curl -s https://${{ env.WEBAPP_NAME }}.azurewebsites.net/api/health
+      - name: Logout from Azure
+        if: always() # Este paso se ejecuta siempre, incluso si los anteriores fallan.
+        run: |
+          echo "Logging out from Azure..."
+          az logout
+          az cache purge
+          az account clear
