@@ -1,3 +1,13 @@
+# Archivos específicos de Git
+.git
+.gitignore
+.gitattributes
+
+# Archivos de entorno
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -20,30 +30,25 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
+# Entornos virtuales
 venv/
 ENV/
 .venv/
 
-# IDE
+# IDE y editores
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Logs and databases
+# Logs y bases de datos
 *.log
 *.sql
 *.sqlite
 *.sqlite3
 
-# OS generated files
+# Archivos del sistema
 .DS_Store
 .DS_Store?
 ._*
@@ -52,7 +57,7 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
+# Archivos de modelos y datos
 models_cache/
 *.pkl
 *.h5
@@ -61,3 +66,31 @@ models_cache/
 *.pt
 *.bin
 *.safetensors
+*.npy
+*.npz
+
+# Archivos temporales
+*.tmp
+temp/
+tmp/
+
+# Archivos de Docker
+.dockerignore
+Dockerfile.dev
+docker-compose.override.yml
+docker-compose.*.yml
+
+# Archivos de documentación
+docs/_build/
+site/
+
+# Archivos de pruebas
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Archivos específicos del proyecto
+*.bak
+*.backup
+*.log.*

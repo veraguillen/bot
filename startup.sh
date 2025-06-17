@@ -61,7 +61,9 @@ wait_for_db() {
 run_migrations() {
     log "Ejecutando migraciones de la base de datos..."
     log "Verificando el estado del historial de Alembic..."
-    local head_count=$(alembic -c alembic.ini heads 2>/dev/null | grep -c "(head)" || true)
+    # Usar una variable local de manera compatible
+    local head_count=0
+    head_count=$(alembic -c alembic.ini heads 2>/dev/null | grep -c "(head)" || echo "0")
 
     if [ "$head_count" -gt 1 ]; then
         log "❌ ERROR: Se detectaron múltiples cabezas en el historial de Alembic ($head_count)."
@@ -87,16 +89,10 @@ main() {
     
     run_migrations
     
-    log "🚀 Iniciando aplicación Gunicorn en $HOST:$APP_PORT con $WORKERS workers..."
-    exec gunicorn \
-        --bind "$HOST:$APP_PORT" \
-        --workers "$WORKERS" \
-        --timeout "$TIMEOUT" \
-        --log-level "$LOG_LEVEL" \
-        --worker-class uvicorn.workers.UvicornWorker \
-        --access-logfile - \
-        --error-logfile - \
-        main:app
+    log "🚀 Iniciando aplicación Gunicorn usando el archivo de configuración gunicorn.conf.py..."
+    
+    # El flag '-c' le dice a Gunicorn que cargue su configuración desde el archivo especificado.
+    exec gunicorn -c gunicorn.conf.py main:app
 }
 
 main "$@"
