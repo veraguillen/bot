@@ -1,15 +1,12 @@
-# Nombre del Workflow
+# .github/workflows/deploy-to-azure.yml
+
 name: Build and Deploy to Azure Web App
 
-# Disparadores (Triggers)
 on:
-  # Se activa en cada push a la rama 'master' (tu rama principal)
   push:
     branches: [ "master" ]
-  # Permite ejecutarlo manualmente desde la interfaz de GitHub
   workflow_dispatch:
 
-# Variables de Entorno Globales para el Workflow
 env:
   RESOURCE_GROUP: "beta-bot"
   ACR_NAME: "chat2025"
@@ -38,28 +35,24 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and Push Docker image to ACR
+        id: build-image
         run: |
-          # Usamos el SHA del commit para una etiqueta de imagen única e inmutable
           IMAGE_TAG=${{ github.sha }}
-          
-          # Construimos y subimos la imagen en un solo paso
           docker build . -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
           docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
+          echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Deploy to Azure Web App
         id: deploy
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.WEBAPP_NAME }}
-          # El grupo de recursos es útil pero no estrictamente necesario si el app-name es único.
-          # Lo dejamos por claridad.
-          resource-group: ${{ env.RESOURCE_GROUP }}
-          images: '${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}'
-
+          # --- CORRECCIÓN: Se usa 'resource-group-name' en lugar de 'resource-group' ---
+          resource-group-name: ${{ env.RESOURCE_GROUP }}
+          images: '${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.build-image.outputs.image-tag }}'
+          
       - name: Logout from Azure
-        if: always() # Este paso se ejecuta siempre, incluso si los anteriores fallan.
+        if: always()
         run: |
           echo "Logging out from Azure..."
-          az logout
-          az cache purge
-          az account clear
+          az logout && az cache purge && az account clear
