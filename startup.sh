@@ -1,5 +1,4 @@
 #!/bin/bash
-# Aumenta la robustez del script deteniéndose ante cualquier error.
 set -e
 
 # --- Configuración ---
@@ -32,37 +31,44 @@ check_env_vars() {
 
 wait_for_db() {
     if ! command -v nc &> /dev/null; then
-        log "❌ ERROR: El comando 'nc' (netcat) no se encuentra. "
-        log "         Asegúrate de instalarlo en tu Dockerfile."
+        log "❌ ERROR: El comando 'nc' (netcat) no se encuentra. Asegúrate de instalarlo en tu Dockerfile."
         exit 1
     fi
-    local host_port=$(echo "$DATABASE_URL" | grep -oP '@\K[^/]+')
-    local host=$(echo "$host_port" | cut -d: -f1)
-    local port=$(echo "$host_port" | cut -d: -f2)
+
+    # --- MEJORA DE ROBUSTEZ: Usando 'sed' para parsear la URL ---
+    # Este método es más resistente a diferentes formatos de URL.
+    local db_uri_no_proto=${DATABASE_URL#*@}
+    local host=$(echo "$db_uri_no_proto" | sed -E 's/:[0-9]+.*//')
+    local port=$(echo "$db_uri_no_proto" | sed -E 's/.*:([0-9]+).*/\1/')
+
+    # Verificación de que el parseo funcionó
+    if [ -z "$host" ] || [ -z "$port" ]; then
+        log "❌ ERROR: No se pudo extraer el host y el puerto de DATABASE_URL."
+        log "   Valor actual de DATABASE_URL: $DATABASE_URL"
+        exit 1
+    fi
+
     log "Esperando a que la base de datos esté disponible en $host:$port..."
+    
     until nc -z "$host" "$port"; do
         log "La base de datos no está lista. Reintentando en 2 segundos..."
         sleep 2
     done
+    
     log "✅ ¡Conexión a la base de datos exitosa!"
 }
 
-# --- CORRECCIÓN: Se añade el flag '-c alembic.ini' para ser explícitos ---
 run_migrations() {
     log "Ejecutando migraciones de la base de datos..."
     log "Verificando el estado del historial de Alembic..."
-    
-    # Se especifica explícitamente el archivo de configuración para evitar ambigüedades.
     local head_count=$(alembic -c alembic.ini heads 2>/dev/null | grep -c "(head)" || true)
 
     if [ "$head_count" -gt 1 ]; then
         log "❌ ERROR: Se detectaron múltiples cabezas en el historial de Alembic ($head_count)."
-        log "   Alembic no puede continuar. Debes fusionar las cabezas manualmente."
-        log "   Ejemplo: docker-compose exec app alembic -c alembic.ini merge <ID1> <ID2>"
+        log "   Debes fusionarlas manualmente."
         exit 1
     else
         log "✅ Historial de Alembic correcto. Procediendo con 'upgrade head'."
-        # Se especifica explícitamente el archivo de configuración aquí también.
         alembic -c alembic.ini upgrade head
     fi
     
@@ -79,11 +85,9 @@ main() {
         wait_for_db
     fi
     
-    # --- MODO DIAGNÓSTICO: Migraciones aún desactivadas ---
-    # Para poder arreglar el historial, mantenemos esto comentado por ahora.
-    # run_migrations
+    run_migrations
     
-    log "🚀 Iniciando aplicación Gunicorn... (MIGRACIONES OMITIDAS)"
+    log "🚀 Iniciando aplicación Gunicorn en $HOST:$APP_PORT con $WORKERS workers..."
     exec gunicorn \
         --bind "$HOST:$APP_PORT" \
         --workers "$WORKERS" \
