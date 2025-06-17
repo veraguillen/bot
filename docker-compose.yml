@@ -1,7 +1,5 @@
 # docker-compose.yml
 
-version: '3.8'
-
 # Configuración de redes
 networks:
   chat-network:
@@ -22,7 +20,7 @@ services:
         # Pasa argumentos de build para metadatos de la imagen
         BUILD_DATE: ${BUILD_DATE:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
         VERSION: ${PROJECT_VERSION:-1.0.0}
-    image: "chatbot-multimarca:${PROJECT_VERSION:-latest}"
+    image: "chatbot-app:latest"  # Nombre de imagen simplificado
     container_name: chatbot-app
     restart: unless-stopped
     env_file:

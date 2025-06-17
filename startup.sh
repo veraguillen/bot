@@ -89,10 +89,17 @@ main() {
     
     run_migrations
     
-    log "🚀 Iniciando aplicación Gunicorn usando el archivo de configuración gunicorn.conf.py..."
+    log "🚀 Iniciando aplicación Gunicorn con configuración optimizada..."
     
-    # El flag '-c' le dice a Gunicorn que cargue su configuración desde el archivo especificado.
-    exec gunicorn -c gunicorn.conf.py main:app
+    # Ejecutar Gunicorn con la configuración desde gunicorn.conf.py
+    # El bind se pasa explícitamente para mayor claridad, aunque también está en gunicorn.conf.py
+    exec gunicorn \
+        --bind "$HOST:$APP_PORT" \
+        -c gunicorn.conf.py \
+        --worker-class uvicorn.workers.UvicornWorker \
+        --access-logfile - \
+        --error-logfile - \
+        main:app
 }
 
 main "$@"
