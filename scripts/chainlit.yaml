@@ -1,0 +1,30 @@
+# Configuración de la interfaz Chainlit para Chatbot Multimarca Beta
+
+# Configuración básica de la interfaz
+ui:
+  name: "Chatbot Multimarca Beta"
+  description: "Tu asistente personal para conectar con el ecosistema de innovación"
+  theme: light
+  # Logo personalizado (opcional)
+  # logo: "/public/logo.png"
+  # favicon: "/public/favicon.ico"
+
+# Elementos de navegación y controles
+features:
+  # Activar búsqueda en el historial de mensajes
+  search_messages: true
+  # Permitir al usuario reiniciar la conversación
+  reset_conversation: true
+
+# Configuración del servidor
+server:
+  allow_origins:
+    - http://localhost:3000
+  allow_credentials: true
+
+# Configuración de mensajes
+markdown:
+  # Permitir LaTeX para fórmulas matemáticas
+  latex: false
+  # Permitir resaltado de sintaxis
+  code_theme: github-dark

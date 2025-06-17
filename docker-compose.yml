@@ -1,0 +1,110 @@
+# docker-compose.yml
+
+version: '3.8'
+
+# Configuración de redes
+networks:
+  chat-network:
+    driver: bridge
+
+# Configuración de volúmenes para datos persistentes
+volumes:
+  redis_data:
+  postgres_data:  # Volumen definido, se usará si el servicio 'db' se descomenta
+
+services:
+  # --- Servicio Principal de la Aplicación ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pasa argumentos de build para metadatos de la imagen
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+        VERSION: ${PROJECT_VERSION:-1.0.0}
+    image: "chatbot-multimarca:${PROJECT_VERSION:-latest}"
+    container_name: chatbot-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Sobrescribe o define variables si no están en .env
+      # Estas serán utilizadas por startup.sh y la aplicación
+      WORKERS: ${WORKERS:-2}
+      PORT: ${SERVER_PORT:-8000}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${SERVER_PORT:-8000}:${SERVER_PORT:-8000}"
+    volumes:
+      # --- MEJORA CRÍTICA: Se eliminó el 'bind mount' del código fuente ---
+      # La línea '- ./app:/app/app' fue eliminada intencionadamente.
+      # Esto asegura que el contenedor utilice el código COPIADO durante el build,
+      # creando un artefacto inmutable y garantizando que lo que se prueba es lo que se despliega.
+      #
+      # Solo se monta el volumen para los logs, permitiendo que sean persistentes y accesibles
+      # desde la máquina anfitriona sin interferir con el código de la aplicación.
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      # db: # Descomentar si usas la base de datos local
+      #   condition: service_healthy
+    
+    # --- MEJORA: Healthcheck centralizado en Dockerfile ---
+    # La directiva 'healthcheck' se ha eliminado de aquí para evitar duplicación.
+    # Se utilizará la definida en el Dockerfile como única fuente de verdad.
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - chat-network
+    
+    # --- IMPORTANTE: 'command' debe estar comentado ---
+    # Al no especificar un 'command' aquí, docker-compose ejecutará el CMD por defecto
+    # del Dockerfile, que hemos configurado para que sea nuestro robusto script './startup.sh'.
+    # Descomentar la siguiente línea solo para desarrollo local con recarga en caliente.
+    # command: bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${SERVER_PORT:-8000} --reload"
+
+  # --- Servicio de Caché Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat-network
+
+  # --- Base de Datos PostgreSQL (Opcional, para desarrollo local) ---
+  # Descomentar este bloque completo si deseas ejecutar una base de datos localmente.
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: postgres-db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: ${PGUSER}
+  #     POSTGRES_PASSWORD: ${PGPASSWORD}
+  #     POSTGRES_DB: ${PGDATABASE}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${PGDATABASE}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - chat-network
