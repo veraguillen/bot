@@ -235,9 +235,17 @@ if not (CONFIG_LOADED_SUCCESSFULLY and settings):
     logger.critical("FALLO CATASTRÓFICO: No se puede crear instancia FastAPI, 'settings' no disponible.")
     app = None # type: ignore 
 else:
+    # --- DIAGNÓSTICO: Inicio de la inicialización de FastAPI ---
+    print("\n" + "="*80)
+    print("DIAGNOSTIC_V2: Iniciando inicialización de FastAPI")
+    print(f"DIAGNOSTIC_V2: PROJECT_NAME = {getattr(settings, 'PROJECT_NAME', 'NO_DEFINIDO')}")
+    print(f"DIAGNOSTIC_V2: PROJECT_VERSION = {getattr(settings, 'PROJECT_VERSION', 'NO_DEFINIDO')}")
+    print("="*80 + "\n")
+    
+    # Crear instancia de FastAPI con configuración explícita
     app = FastAPI(
-        title=settings.PROJECT_NAME,
-        version=settings.PROJECT_VERSION,
+        title=str(getattr(settings, 'PROJECT_NAME', 'ChatAPI')),  # Asegurar que sea string
+        version=str(getattr(settings, 'PROJECT_VERSION', '0.1.0')),  # Asegurar que sea string
         lifespan=lifespan,
         openapi_version="3.1.0"
     )
