@@ -5,13 +5,22 @@ name: Build and Deploy to Azure Web App
 on:
   push:
     branches: [ "master" ]
+# .github/workflows/deploy-to-azure.yml
+
+name: Build and Deploy to Azure Web App
+
+on:
+  push:
+    branches: [ "master" ]
   workflow_dispatch:
 
 env:
   RESOURCE_GROUP: "beta-bot"
   ACR_NAME: "chat2025"
   WEBAPP_NAME: "chat-app-4313"
-  DOCKER_IMAGE_NAME: "whatsapp-bot-image" # Nombre de la imagen en ACR
+  DOCKER_IMAGE_NAME: "whatsapp-bot-image"
+  # Agregar configuración de puerto
+  CONTAINER_PORT: "8000"
 
 jobs:
   build-and-deploy:
@@ -38,19 +47,37 @@ jobs:
       - name: Build and Push Docker image to ACR
         id: build-image
         run: |
+          # Usar el hash del commit como tag
           IMAGE_TAG=${{ github.sha }}
-          docker build . -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
+          # Construir la imagen
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG} .
+          # Hacer push de la imagen
           docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${IMAGE_TAG}
+          # Guardar el tag para usarlo en pasos posteriores
           echo "image-tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-      - name: Deploy to Azure Web App
-        id: deploy
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.WEBAPP_NAME }}
-          # --- CORRECCIÓN: Se usa 'resource-group-name' en lugar de 'resource-group' ---
-          resource-group-name: ${{ env.RESOURCE_GROUP }}
-          images: '${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.build-image.outputs.image-tag }}'
+      - name: Configure App Service
+        run: |
+          # Configurar el puerto del contenedor
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              WEBSITES_PORT=${{ env.CONTAINER_PORT }} \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false
+
+          # Configurar el contenedor
+          az webapp config container set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --docker-custom-image-name ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.build-image.outputs.image-tag }} \
+            --docker-registry-server-url https://${{ env.ACR_NAME }}.azurecr.io \
+            --docker-registry-server-user ${{ secrets.ACR_USERNAME }} \
+            --docker-registry-server-password ${{ secrets.ACR_PASSWORD }}
+
+      - name: Restart Web App
+        run: |
+          az webapp restart --name ${{ env.WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
           
       - name: Logout from Azure
         if: always()
