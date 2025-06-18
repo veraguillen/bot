@@ -1370,15 +1370,22 @@ async def handle_whatsapp_message(
         await send_whatsapp_message(from_phone, f"Parece que nos perdimos un poco. Volvamos al inicio.\n\n{selection_message}")
         return {"status": "success", "action": "unhandled_stage_reset"}
 
-async def process_webhook_payload(payload: dict, db_session: AsyncSession, request: Request):
+async def process_webhook_payload_in_background(payload: dict, request: Request):
     """
-    Procesa el payload de un webhook de WhatsApp Business API.
-    Implementa manejo completo de errores para asegurar respuestas 
-    robustas incluso en caso de fallos.
+    Procesa el payload de un webhook de WhatsApp Business API en segundo plano.
+    Crea su propia sesión de base de datos para evitar problemas de concurrencia.
     """
     request_id = f"req_{datetime.now(tz=timezone.utc).strftime('%Y%m%d%H%M%S')}_{id(request)}"
-    logger.info(f"[{request_id}] process_webhook_payload: Recibido payload. Object Type: '{payload.get('object', 'N/A')}'")
-
+    logger.info(f"[{request_id}] process_webhook_payload_in_background: Procesando en segundo plano. Object Type: '{payload.get('object', 'N/A')}'")
+    
+    # Crear una nueva sesión de base de datos para esta tarea en segundo plano
+    from sqlalchemy.ext.asyncio import AsyncSession as AsyncSessionType
+    from sqlalchemy.orm import sessionmaker
+    from ..core.database import engine
+    
+    async_session = sessionmaker(engine, class_=AsyncSessionType, expire_on_commit=False)
+    db_session = async_session()
+    
     try:
         object_type = payload.get("object")
         if object_type != "whatsapp_business_account":
@@ -1493,9 +1500,28 @@ async def process_webhook_payload(payload: dict, db_session: AsyncSession, reque
                 logger.error(f"No se pudo notificar al admin sobre error: {e_notify}")
                 
         # Estructura de respuesta para monitorización y debugging
-        return {
+        error_response = {
             "status": "error",
             "request_id": request_id,
             "error_type": type(e_main_webhook_processing).__name__,
+            "error_message": str(e_main_webhook_processing),
             "timestamp": datetime.now(tz=timezone.utc).isoformat()
         }
+        logger.error(f"[{request_id}] Error en proceso en segundo plano: {error_response}")
+        return error_response
+    finally:
+        # Asegurarse de cerrar la sesión de base de datos
+        try:
+            await db_session.close()
+            logger.debug(f"[{request_id}] Sesión de base de datos cerrada correctamente")
+        except Exception as e_close:
+            logger.error(f"[{request_id}] Error al cerrar la sesión de base de datos: {e_close}")
+
+# Función de compatibilidad para mantener la interfaz existente
+async def process_webhook_payload(payload: dict, db_session: AsyncSession, request: Request):
+    """
+    Función de compatibilidad que mantiene la interfaz original.
+    Esta función ahora delega el procesamiento a process_webhook_payload_in_background.
+    """
+    logger.warning("process_webhook_payload: Este método está obsoleto. Usa process_webhook_payload_in_background en su lugar.")
+    return await process_webhook_payload_in_background(payload, request)

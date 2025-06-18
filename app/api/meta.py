@@ -216,12 +216,21 @@ async def webhook_verification(request: Request,
         raise HTTPException(status_code=400, detail="Modo o parámetros de verificación inválidos.")
 
 @meta_router.post("/webhook")
-async def receive_webhook_events(request: Request, background_tasks: BackgroundTasks, db_session: AsyncSession = Depends(get_db_session)):
-    """Endpoint para recibir eventos de webhook de WhatsApp/Meta"""
+async def receive_webhook_events(
+    request: Request, 
+    background_tasks: BackgroundTasks, 
+    db_session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Endpoint para recibir eventos de webhook de WhatsApp/Meta.
+    
+    Este endpoint responde inmediatamente con 200 OK y delega el procesamiento
+    a una tarea en segundo plano para evitar timeouts y reintentos de Meta.
+    """
     logger.info("META POST /webhook: Solicitud de mensaje entrante recibida.")
     
     try:
-        payload_dict: Dict[str, Any]
+        # Leer el payload del request
         try:
             payload_dict = await request.json()
             # Loguear solo una parte del payload para no llenar los logs
@@ -239,22 +248,47 @@ async def receive_webhook_events(request: Request, background_tasks: BackgroundT
             logger.error(f"Error inesperado al obtener JSON del request: {e_read_req}", exc_info=True)
             raise HTTPException(status_code=400, detail="Error al leer el cuerpo de la solicitud.")
 
-        # Usar la misma función de procesamiento que el router principal
-        from ..main.webhook_handler import process_webhook_payload
-        await process_webhook_payload(payload=payload_dict, db_session=db_session, request=request)
-        logger.info("META POST /webhook: Payload procesado exitosamente.")
+        # Validación básica del payload
+        if not isinstance(payload_dict, dict) or 'object' not in payload_dict:
+            logger.warning(f"Payload inválido recibido: {str(payload_dict)[:200]}...")
+            # Aún así devolvemos 200 para evitar que Meta deshabilite el webhook
+            return {"status": "success", "message": "Payload inválido, pero se aceptó para evitar reintentos."}
+
+        # Añadir la tarea en segundo plano para procesar el payload
+        from ..main.webhook_handler import process_webhook_payload_in_background
+        background_tasks.add_task(
+            process_webhook_payload_in_background,
+            payload=payload_dict,
+            request=request
+        )
         
-        # Meta espera un 200 OK para confirmar la recepción
-        return {"status": "success", "message": "Evento de webhook recibido y procesado."}
+        logger.info("META POST /webhook: Payload aceptado y encolado para procesamiento en segundo plano.")
+        
+        # Responder inmediatamente con 200 OK para evitar reintentos de Meta
+        return {
+            "status": "accepted", 
+            "message": "Evento de webhook recibido y encolado para procesamiento.",
+            "processed_in_background": True,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
 
     except HTTPException as http_exc:
         # Relanzar excepciones HTTP para que FastAPI las maneje
         logger.warning(f"META POST /webhook: HTTPException: {http_exc.detail}")
         raise http_exc
     except Exception as e_processing:
-        logger.error(f"META POST /webhook: Error inesperado: {e_processing}", exc_info=True)
+        # Capturar cualquier otro error inesperado
+        error_id = f"err_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        logger.error(f"META POST /webhook [{error_id}]: Error inesperado: {e_processing}", exc_info=True)
+        
         # CRÍTICO: Devolver 200 OK a Meta incluso con error interno para evitar que Meta deshabilite el webhook
-        return {"status": "success", "message": "Evento recibido."}  # Éxito aunque hubo error interno
+        return {
+            "status": "error",
+            "error_id": error_id,
+            "message": "Error interno del servidor, pero se aceptó la notificación.",
+            "processed_in_background": False,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
 
 async def send_whatsapp_message(
     to: str, 
