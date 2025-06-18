@@ -1,12 +1,3 @@
-# .github/workflows/deploy-to-azure.yml
-
-name: Build and Deploy to Azure Web App
-
-on:
-  push:
-    branches: [ "master" ]
-# .github/workflows/deploy-to-azure.yml
-
 name: Build and Deploy to Azure Web App
 
 on:
@@ -19,7 +10,6 @@ env:
   ACR_NAME: "chat2025"
   WEBAPP_NAME: "chat-app-4313"
   DOCKER_IMAGE_NAME: "whatsapp-bot-image"
-  # Agregar configuración de puerto
   CONTAINER_PORT: "8000"
 
 jobs:
