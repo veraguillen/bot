@@ -300,12 +300,19 @@ else:
     # Incluir routers en la aplicación
     try:
         print("[INIT DIAGNÓSTICO] Incluyendo routers en la aplicación...")
+        
+        # Incluir el router principal (contiene las rutas de las páginas legales)
+        from app.main import main_router
+        app.include_router(main_router)
+        
+        # Incluir los demás routers de la API
         app.include_router(meta_router)
         app.include_router(webhook_router)
         app.include_router(rag_router)
         app.include_router(health_router, prefix="/api")
         app.include_router(chat_router)
-        logger.info("Routers API específicos incluidos (meta, webhook, rag, health, chat).")
+        
+        logger.info("Routers incluidos correctamente (main, meta, webhook, rag, health, chat).")
     except Exception as e_router_final:
         logger.critical(f"Error al incluir routers en la instancia FastAPI: {e_router_final}", exc_info=True)
 
