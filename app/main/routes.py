@@ -1,11 +1,23 @@
 # app/main/routes.py
 from fastapi import APIRouter, Query, Depends, Request, HTTPException, Body, BackgroundTasks
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
 import json
 import os
-from datetime import datetime, timezone
+import locale
+from datetime import datetime, timezone, date
+
+# Configurar el locale a español para los nombres de los meses
+try:
+    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+except locale.Error:
+    print("Locale 'es_ES.UTF-8' no disponible. Usando locale por defecto.")
+    pass
+
+# Configurar las plantillas
+templates = Jinja2Templates(directory="templates")
 
 # Importamos el meta_router para WhatsApp API
 from ..api.meta import meta_router
@@ -87,3 +99,37 @@ async def receive_webhook_route(
     
     # Redirigir al nuevo endpoint manteniendo compatibilidad
     return await receive_webhook_events(request, background_tasks, db_session)
+
+# =========================================================================
+# RUTAS PARA PÁGINAS LEGALES
+# =========================================================================
+
+@router.get("/privacy-policy", response_class=HTMLResponse, tags=["Legal"])
+async def privacy_policy(request: Request):
+    """
+    Sirve la página de Política de Privacidad.
+    """
+    return templates.TemplateResponse("privacy_policy.html", {
+        "request": request,
+        "fecha_actualizacion": date.today().strftime("%d de %B de %Y")
+    })
+
+@router.get("/terms-of-service", response_class=HTMLResponse, tags=["Legal"])
+async def terms_of_service(request: Request):
+    """
+    Sirve la página de Términos del Servicio.
+    """
+    return templates.TemplateResponse("terms_of_service.html", {
+        "request": request,
+        "fecha_actualizacion": date.today().strftime("%d de %B de %Y")
+    })
+
+@router.get("/data-deletion", response_class=HTMLResponse, tags=["Legal"])
+async def data_deletion(request: Request):
+    """
+    Sirve la página de Instrucciones para la Eliminación de Datos.
+    """
+    return templates.TemplateResponse("data_deletion.html", {
+        "request": request,
+        "fecha_actualizacion": date.today().strftime("%d de %B de %Y")
+    })

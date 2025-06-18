@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliminación de Datos - Chatbot Multimarca Beta</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #7f8c8d;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        p, li {
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+        ul {
+            padding-left: 25px;
+        }
+        .highlight {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .instructions {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .step:before {
+            content: "•";
+            color: #3498db;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .important {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Instrucciones para la Eliminación de Datos</h1>
+        
+        <div class="highlight">
+            <strong>Fecha de última actualización:</strong> {{ fecha_actualizacion }}
+        </div>
+
+        <p>En <strong>Chatbot Multimarca Beta</strong>, valoramos y respetamos su privacidad. Si desea solicitar la eliminación de sus datos personales de nuestros sistemas, siga las instrucciones que se detallan a continuación.</p>
+
+        <h2>¿Cómo solicitar la eliminación de sus datos?</h2>
+        
+        <div class="instructions">
+            <h3>Proceso de Solicitud de Eliminación de Datos</h3>
+            
+            <div class="step">
+                <strong>1. Envíe un correo electrónico a:</strong><br>
+                <a href="mailto:soporte@miempresa.com" style="color: #3498db; text-decoration: none;">soporte@miempresa.com</a>
+            </div>
+            
+            <div class="step">
+                <strong>2. Asunto del correo:</strong><br>
+                <span class="important">"Solicitud de Eliminación de Datos de WhatsApp"</span>
+            </div>
+            
+            <div class="step">
+                <strong>3. En el cuerpo del mensaje, proporcione la siguiente información:</strong>
+                <ul>
+                    <li>Su nombre completo</li>
+                    <li class="important">Su número de teléfono de WhatsApp (incluyendo el código de país)</li>
+                    <li>Una breve descripción de su solicitud</li>
+                </ul>
+            </div>
+            
+            <div class="step">
+                <strong>Ejemplo de mensaje:</strong><br>
+                <em>"Solicito la eliminación de mis datos personales asociados al número de WhatsApp +[código de país][número]. Por favor, confírmenme cuando se haya completado la eliminación."</em>
+            </div>
+        </div>
+
+        <h2>¿Qué sucede después de enviar su solicitud?</h2>
+        
+        <p>Una vez que recibamos su solicitud:</p>
+        
+        <ol>
+            <li><strong>Confirmación de recepción:</strong> Le enviaremos un correo electrónico de confirmación dentro de las 24-48 horas hábiles posteriores a la recepción de su solicitud.</li>
+            <li><strong>Verificación de identidad:</strong> Podríamos solicitarle información adicional para verificar su identidad y garantizar la seguridad de sus datos.</li>
+            <li><strong>Procesamiento de la solicitud:</strong> Una vez verificada su identidad, procederemos a eliminar sus datos personales de nuestros sistemas en un plazo no mayor a 30 días hábiles.</li>
+            <li><strong>Confirmación de eliminación:</strong> Recibirá una notificación por correo electrónico una vez que se haya completado la eliminación de sus datos.</li>
+        </ol>
+
+        <div class="highlight">
+            <h3>Información importante</h3>
+            <p>La eliminación de sus datos personales puede estar sujeta a ciertas limitaciones legales o técnicas. En tales casos, le informaremos sobre cualquier dato que no podamos eliminar y las razones correspondientes.</p>
+            <p>Consulte nuestra <a href="/privacy-policy" style="color: #3498db;">Política de Privacidad</a> para obtener más información sobre cómo manejamos sus datos personales.</p>
+        </div>
+
+        <h2>Preguntas frecuentes</h2>
+        
+        <h3>¿Qué datos se eliminarán?</h3>
+        <p>Se eliminarán todos los datos personales asociados a su número de WhatsApp, incluyendo su historial de conversaciones, información de perfil y cualquier otro dato que hayamos recopilado.</p>
+        
+        <h3>¿Cuánto tiempo tardará el proceso?</h3>
+        <p>El proceso completo de eliminación puede tardar hasta 30 días hábiles desde la recepción de su solicitud verificada.</p>
+        
+        <h3>¿Recibiré una confirmación?</h3>
+        <p>Sí, recibirá una confirmación por correo electrónico una vez que se haya completado la eliminación de sus datos.</p>
+
+        <div class="footer">
+            <p>© 2024 Chatbot Multimarca Beta. Todos los derechos reservados.</p>
+            <p><a href="/privacy-policy">Política de Privacidad</a> | <a href="/terms-of-service">Términos del Servicio</a></p>
+        </div>
+    </div>
+</body>
+</html>
