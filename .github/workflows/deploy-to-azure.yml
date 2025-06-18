@@ -48,78 +48,114 @@ jobs:
 
       - name: Configure App Service
         run: |
-          # Configuración de la aplicación
+          # Configuración básica de la aplicación
           az webapp config appsettings set \
             --name ${{ env.WEBAPP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --settings \
-            PROJECT_NAME='${{ secrets.PROJECT_NAME }}' \
-            PROJECT_VERSION='${{ secrets.PROJECT_VERSION }}' \
-            SERVER_HOST='${{ secrets.SERVER_HOST }}' \
-            SERVER_PORT='${{ secrets.SERVER_PORT }}' \
-            ENVIRONMENT='production' \
-            DEBUG='False' \
-            LOG_LEVEL='INFO' \
-            PROJECT_SITE_URL='https://${{ env.WEBAPP_NAME }}.azurewebsites.net' \
-            DATABASE_URL='${{ secrets.DATABASE_URL }}' \
-            PGPORT='${{ secrets.PGPORT }}' \
-            PGDATABASE='${{ secrets.PGDATABASE }}' \
-            PGUSER='${{ secrets.PGUSER }}' \
-            PGPASSWORD='${{ secrets.PGPASSWORD }}' \
-            POSTGRES_SSL_MODE='${{ secrets.POSTGRES_SSL_MODE }}' \
-            AZURE_POSTGRES_URL='${{ secrets.AZURE_POSTGRES_URL }}' \
-            WHATSAPP_VERIFY_TOKEN='${{ secrets.WHATSAPP_VERIFY_TOKEN }}' \
-            WHATSAPP_ACCESS_TOKEN='${{ secrets.WHATSAPP_ACCESS_TOKEN }}' \
-            WHATSAPP_PHONE_NUMBER_ID='${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}' \
-            META_API_VERSION='${{ secrets.META_API_VERSION }}' \
-            APP_SECRET='${{ secrets.APP_SECRET }}' \
-            VERIFY_TOKEN='${{ secrets.VERIFY_TOKEN }}' \
-            STORAGE_ACCOUNT_NAME='${{ secrets.STORAGE_ACCOUNT_NAME }}' \
-            CONTAINER_NAME='${{ secrets.CONTAINER_NAME }}' \
-            AZURE_STORAGE_CONNECTION_STRING='${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}' \
-            VECTOR_COLLECTION_NAME='${{ secrets.VECTOR_COLLECTION_NAME }}' \
-            EMBEDDING_MODEL_NAME='${{ secrets.EMBEDDING_MODEL_NAME }}' \
-            RAG_DEFAULT_K='${{ secrets.RAG_DEFAULT_K }}' \
-            RAG_K_FETCH_MULTIPLIER='${{ secrets.RAG_K_FETCH_MULTIPLIER }}' \
-            RAG_SIMILARITY_THRESHOLD='${{ secrets.RAG_SIMILARITY_THRESHOLD }}' \
-            CHUNK_SIZE='${{ secrets.CHUNK_SIZE }}' \
-            CHUNK_OVERLAP='${{ secrets.CHUNK_OVERLAP }}' \
-            MIN_CHUNK_SIZE='${{ secrets.MIN_CHUNK_SIZE }}' \
-            MAX_CHUNK_SIZE='${{ secrets.MAX_CHUNK_SIZE }}' \
-            OPENROUTER_API_KEY='${{ secrets.OPENROUTER_API_KEY }}' \
-            OPENROUTER_MODEL_CHAT='${{ secrets.OPENROUTER_MODEL_CHAT }}' \
-            OPENROUTER_CHAT_ENDPOINT='${{ secrets.OPENROUTER_CHAT_ENDPOINT }}' \
-            LLM_TEMPERATURE='${{ secrets.LLM_TEMPERATURE }}' \
-            LLM_MAX_TOKENS='${{ secrets.LLM_MAX_TOKENS }}' \
-            LLM_HTTP_TIMEOUT='${{ secrets.LLM_HTTP_TIMEOUT }}' \
-            HUGGINGFACE_TOKEN='${{ secrets.HUGGINGFACE_TOKEN }}' \
-            GOOGLE_API_KEY='${{ secrets.GOOGLE_API_KEY }}' \
-            GOOGLE_CSE_ID='${{ secrets.GOOGLE_CSE_ID }}' \
-            KEY_VAULT_URI='${{ secrets.KEY_VAULT_URI }}' \
-            KEY_VAULT_NAME='${{ secrets.KEY_VAULT_NAME }}' \
-            AZURE_SUBSCRIPTION_ID='${{ secrets.AZURE_SUBSCRIPTION_ID }}' \
-            RAPIDAPI_KEY='${{ secrets.RAPIDAPI_KEY }}' \
-            RAPIDAPI_HOST='${{ secrets.RAPIDAPI_HOST }}' \
-            CALENDLY_API_KEY='${{ secrets.CALENDLY_API_KEY }}' \
-            CALENDLY_EVENT_TYPE_URI='${{ secrets.CALENDLY_EVENT_TYPE_URI }}' \
-            CALENDLY_TIMEZONE='${{ secrets.CALENDLY_TIMEZONE }}' \
-            CALENDLY_DAYS_TO_CHECK='${{ secrets.CALENDLY_DAYS_TO_CHECK }}' \
-            CALENDLY_GENERAL_SCHEDULING_LINK='${{ secrets.CALENDLY_GENERAL_SCHEDULING_LINK }}' \
-            CALENDLY_USER_SLUG='${{ secrets.CALENDLY_USER_SLUG }}' \
-            LOG_MAX_SIZE_BYTES='${LOG_MAX_SIZE_BYTES:-10485760}' \
-            LOG_BACKUP_COUNT='${LOG_BACKUP_COUNT:-5}' \
-            WEBSITES_PORT='8000' \
-            WEBSITES_CONTAINER_START_TIME_LIMIT='1800' \
-            WEBSITES_ENABLE_APP_SERVICE_STORAGE='false' \
-            WEBSITE_NODE_DEFAULT_VERSION='18.x' \
-            PYTHON_VERSION='3.9' \
-            PYTHON_ENABLE_WORKER_EXTENSIONS='1' \
-            SCM_DO_BUILD_DURING_DEPLOYMENT='1' \
-            ENABLE_ORYX_BUILD='true' \
-            SCM_BRANCH='master' \
-            WEBSITE_HTTPLOGGING_RETENTION_DAYS='7' \
-            BRANDS_DIR='${BRANDS_DIR:-/app/data/brands}' \
-            RECREATE_COLLECTION='${RECREATE_COLLECTION:-false}'
+              PROJECT_NAME="${{ secrets.PROJECT_NAME }}" \
+              PROJECT_VERSION="${{ secrets.PROJECT_VERSION }}" \
+              SERVER_HOST="${{ secrets.SERVER_HOST }}" \
+              SERVER_PORT="${{ secrets.SERVER_PORT }}" \
+              ENVIRONMENT="production" \
+              DEBUG="False" \
+              LOG_LEVEL="INFO" \
+              PROJECT_SITE_URL="https://${{ env.WEBAPP_NAME }}.azurewebsites.net" \
+              WEBSITES_PORT="8000" \
+              WEBSITES_CONTAINER_START_TIME_LIMIT="1800" \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE="false" \
+              WEBSITE_NODE_DEFAULT_VERSION="18.x" \
+              PYTHON_VERSION="3.9" \
+              PYTHON_ENABLE_WORKER_EXTENSIONS="1" \
+              SCM_DO_BUILD_DURING_DEPLOYMENT="1" \
+              ENABLE_ORYX_BUILD="true" \
+              SCM_BRANCH="master" \
+              WEBSITE_HTTPLOGGING_RETENTION_DAYS="7"
+
+          # Configuración de base de datos
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              PGPORT="${{ secrets.PGPORT }}" \
+              PGDATABASE="${{ secrets.PGDATABASE }}" \
+              PGUSER="${{ secrets.PGUSER }}" \
+              PGPASSWORD="${{ secrets.PGPASSWORD }}" \
+              POSTGRES_SSL_MODE="${{ secrets.POSTGRES_SSL_MODE }}" \
+              AZURE_POSTGRES_URL="${{ secrets.AZURE_POSTGRES_URL }}"
+
+          # Configuración de WhatsApp y seguridad
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              WHATSAPP_VERIFY_TOKEN="${{ secrets.WHATSAPP_VERIFY_TOKEN }}" \
+              WHATSAPP_ACCESS_TOKEN="${{ secrets.WHATSAPP_ACCESS_TOKEN }}" \
+              WHATSAPP_PHONE_NUMBER_ID="${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}" \
+              META_API_VERSION="${{ secrets.META_API_VERSION }}" \
+              APP_SECRET="${{ secrets.APP_SECRET }}" \
+              VERIFY_TOKEN="${{ secrets.VERIFY_TOKEN }}"
+
+          # Configuración de almacenamiento
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              STORAGE_ACCOUNT_NAME="${{ secrets.STORAGE_ACCOUNT_NAME }}" \
+              CONTAINER_NAME="${{ secrets.CONTAINER_NAME }}" \
+              AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+              VECTOR_COLLECTION_NAME="${{ secrets.VECTOR_COLLECTION_NAME }}" \
+              EMBEDDING_MODEL_NAME="${{ secrets.EMBEDDING_MODEL_NAME }}"
+
+          # Configuración de RAG
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              RAG_DEFAULT_K="${{ secrets.RAG_DEFAULT_K }}" \
+              RAG_K_FETCH_MULTIPLIER="${{ secrets.RAG_K_FETCH_MULTIPLIER }}" \
+              RAG_SIMILARITY_THRESHOLD="${{ secrets.RAG_SIMILARITY_THRESHOLD }}" \
+              CHUNK_SIZE="${{ secrets.CHUNK_SIZE }}" \
+              CHUNK_OVERLAP="${{ secrets.CHUNK_OVERLAP }}" \
+              MIN_CHUNK_SIZE="${{ secrets.MIN_CHUNK_SIZE }}" \
+              MAX_CHUNK_SIZE="${{ secrets.MAX_CHUNK_SIZE }}" \
+              BRANDS_DIR="${BRANDS_DIR:-/app/data/brands}" \
+              RECREATE_COLLECTION="${RECREATE_COLLECTION:-false}"
+
+          # Configuración de LLM
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" \
+              OPENROUTER_MODEL_CHAT="${{ secrets.OPENROUTER_MODEL_CHAT }}" \
+              OPENROUTER_CHAT_ENDPOINT="${{ secrets.OPENROUTER_CHAT_ENDPOINT }}" \
+              LLM_TEMPERATURE="${{ secrets.LLM_TEMPERATURE }}" \
+              LLM_MAX_TOKENS="${{ secrets.LLM_MAX_TOKENS }}" \
+              LLM_HTTP_TIMEOUT="${{ secrets.LLM_HTTP_TIMEOUT }}" \
+              HUGGINGFACE_TOKEN="${{ secrets.HUGGINGFACE_TOKEN }}" \
+              GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
+              GOOGLE_CSE_ID="${{ secrets.GOOGLE_CSE_ID }}"
+
+          # Configuración de APIs externas
+          az webapp config appsettings set \
+            --name ${{ env.WEBAPP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --settings \
+              KEY_VAULT_URI="${{ secrets.KEY_VAULT_URI }}" \
+              KEY_VAULT_NAME="${{ secrets.KEY_VAULT_NAME }}" \
+              AZURE_SUBSCRIPTION_ID="${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              RAPIDAPI_KEY="${{ secrets.RAPIDAPI_KEY }}" \
+              RAPIDAPI_HOST="${{ secrets.RAPIDAPI_HOST }}" \
+              CALENDLY_API_KEY="${{ secrets.CALENDLY_API_KEY }}" \
+              CALENDLY_EVENT_TYPE_URI="${{ secrets.CALENDLY_EVENT_TYPE_URI }}" \
+              CALENDLY_TIMEZONE="${{ secrets.CALENDLY_TIMEZONE }}" \
+              CALENDLY_DAYS_TO_CHECK="${{ secrets.CALENDLY_DAYS_TO_CHECK }}" \
+              CALENDLY_GENERAL_SCHEDULING_LINK="${{ secrets.CALENDLY_GENERAL_SCHEDULING_LINK }}" \
+              CALENDLY_USER_SLUG="${{ secrets.CALENDLY_USER_SLUG }}" \
+              LOG_MAX_SIZE_BYTES="${LOG_MAX_SIZE_BYTES:-10485760}" \
+              LOG_BACKUP_COUNT="${LOG_BACKUP_COUNT:-5}"
 
           # Configurar el contenedor
           az webapp config container set \
