@@ -105,7 +105,8 @@ jobs:
               CALENDLY_EVENT_TYPE_URI="${{ secrets.CALENDLY_EVENT_TYPE_URI }}" \
               CALENDLY_TIMEZONE="${{ secrets.CALENDLY_TIMEZONE }}" \
               CALENDLY_GENERAL_SCHEDULING_LINK="${{ secrets.CALENDLY_GENERAL_SCHEDULING_LINK }}" \
-              CALENDLY_USER_SLUG="${{ secrets.CALENDLY_USER_SLUG }}"
+              CALENDLY_USER_SLUG="${{ secrets.CALENDLY_USER_SLUG }}" \
+              OPENAPI_VERSION="3.1.0"
 
       - name: Deploy container to App Service
         run: |
