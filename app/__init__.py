@@ -238,7 +238,8 @@ else:
     app = FastAPI(
         title=settings.PROJECT_NAME,
         version=settings.PROJECT_VERSION,
-        lifespan=lifespan
+        lifespan=lifespan,
+        openapi_version="3.1.0"
     )
     from fastapi.middleware.cors import CORSMiddleware
     
