@@ -354,10 +354,10 @@ def create_llm_client() -> httpx.AsyncClient:
 async def generate_chat_completion(
     system_message: str, 
     user_message: str,
-    temperature: float = None,
-    max_tokens: int = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
     http_client: Optional[httpx.AsyncClient] = None,
-    request = None
+    request: Optional[Any] = None
 ) -> str:
     """
     Genera una respuesta de chat usando mensajes de sistema y usuario separados.
@@ -374,7 +374,7 @@ async def generate_chat_completion(
     logger.info(f"CHAT LLM: Generando respuesta para mensaje de usuario: '{user_message[:50]}...'")
     
     # Obtener configuración desde settings o usar valores por defecto
-    openrouter_model_id = getattr(settings, "OPENROUTER_MODEL_ID", "openai/gpt-3.5-turbo")
+    openrouter_model_id = getattr(settings, "OPENROUTER_MODEL_CHAT", "meta-llama/llama-3-8b-instruct")
     llm_temp = temperature if temperature is not None else float(getattr(settings, 'LLM_TEMPERATURE', 0.7))
     llm_max_t = max_tokens if max_tokens is not None else int(getattr(settings, 'LLM_MAX_TOKENS', 1000))
     
@@ -435,6 +435,10 @@ async def generate_chat_completion(
         "stream": False
     }
 
+    # AGREGAR LOGGING PARA DEBUG
+    logger.info(f"CHAT LLM: Modelo que se enviará: '{openrouter_model_id}'")
+    logger.info(f"CHAT LLM: Payload completo: {json.dumps(payload, ensure_ascii=False)}")
+
     try:
         # Obtener URL base desde settings o usar la predeterminada
         base_url = _get_validated_base_url()
@@ -459,15 +463,27 @@ async def generate_chat_completion(
             # Usar el contexto asíncrono del factory para obtener un cliente seguro
             logger.debug("CHAT LLM: Usando contexto asíncrono del factory para llamada HTTP")
             async with client_factory.client_context() as safe_client:
-                response = await safe_client.post(endpoint_url, json=payload, headers=headers)
+                # CORRECCIÓN: Usar solo el path relativo ya que el cliente tiene base_url configurado
+                response = await safe_client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload, headers=headers)
         else:
             # Usar el cliente proporcionado o el obtenido del request
             logger.debug("CHAT LLM: Usando cliente HTTP proporcionado para llamada HTTP")
-            response = await client.post(endpoint_url, json=payload, headers=headers)
+            if client is None:
+                logger.error("CHAT LLM: Cliente HTTP es None, no se puede hacer la petición")
+                return "Error interno: Cliente HTTP no disponible"
+            # CORRECCIÓN: Usar solo el path relativo ya que el cliente tiene base_url configurado
+            response = await client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload, headers=headers)
         
         # Verificar código de estado
         if response.status_code != 200:
-            error_text = await response.text()
+            # Verificar que response sea un objeto de respuesta válido
+            if hasattr(response, 'text'):
+                try:
+                    error_text = response.text
+                except Exception:
+                    error_text = str(response) if response else "Respuesta inválida"
+            else:
+                error_text = str(response) if response else "Respuesta inválida"
             logger.error(f"CHAT LLM: Error HTTP {response.status_code}: {error_text[:200]}")
             return f"Error en el servicio de chat (código {response.status_code})"
             
@@ -786,7 +802,8 @@ async def get_llm_response(
     
     except json.JSONDecodeError as e_json:
         # Esto podría pasar si la respuesta no es JSON válido a pesar de un status 200
-        logger.error(f"  Error al decodificar la respuesta JSON de OpenRouter. Status: {response.status_code if 'response' in locals() else 'N/A'}. Error: {e_json}", exc_info=True)
+        status_code = getattr(response, 'status_code', 'N/A') if 'response' in locals() else 'N/A'
+        logger.error(f"  Error al decodificar la respuesta JSON de OpenRouter. Status: {status_code}. Error: {e_json}", exc_info=True)
         # logger.debug(f"   Contenido que falló la decodificación JSON: {response.text if 'response' in locals() else 'N/A'}")
         return "Error: La respuesta del servicio LLM no pudo ser interpretada (formato JSON inválido)."
 

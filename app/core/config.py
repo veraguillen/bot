@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
     SERVER_HOST: str = "0.0.0.0"
     SERVER_PORT: int = 8000
-    PROJECT_SITE_URL: HttpUrl = Field(default="http://localhost:8000")
+    PROJECT_SITE_URL: str = "http://localhost:8000"
 
     # --- Base de Datos (PostgreSQL en Azure) ---
     # Pydantic validará la URL y la mantendrá como un objeto DSN.
@@ -71,7 +71,6 @@ class Settings(BaseSettings):
     
     # --- Integraciones externas (variables opcionales) ---
     # Estas variables son opcionales y no causarán error si no están definidas
-    MESSENGER_PAGE_ACCESS_TOKEN: Optional[str] = None
     OPENROUTER_CHAT_ENDPOINT: Optional[str] = None
     
     # --- Caché y Rendimiento ---

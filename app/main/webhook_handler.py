@@ -13,7 +13,7 @@ INAPPROPRIATE_WORDS = [
 ]
 
 # Conjunto de palabras clave para reiniciar la conversación
-RESET_KEYWORDS = {"menu", "menú", "reiniciar", "reset", "cancelar"}
+RESET_KEYWORDS = {"menu", "menú", "reiniciar", "reset", "cancelar", "volver"}
 
 # Conjunto de palabras clave para salir/terminar la conversación
 EXIT_KEYWORDS = {"salir", "adios", "adiós", "chao", "hasta luego", "terminar", "finalizar"}
