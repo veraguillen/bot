@@ -65,9 +65,12 @@ jobs:
               MIN_CHUNK_SIZE=100 \
               MAX_CHUNK_SIZE=1800 \
               RECREATE_COLLECTION=false \
-              LLM_TEMPERATURE=0.3 \
-              LLM_MAX_TOKENS=600 \
+              LLM_TEMPERATURE=0.7 \
+              LLM_MAX_TOKENS=1000 \
               LLM_HTTP_TIMEOUT=45.0 \
+              LLM_TOP_P=1.0 \
+              LLM_FREQUENCY_PENALTY=0.0 \
+              LLM_PRESENCE_PENALTY=0.0 \
               LOG_MAX_SIZE_BYTES=10485760 \
               LOG_BACKUP_COUNT=5 \
               CALENDLY_DAYS_TO_CHECK=7 \

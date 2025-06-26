@@ -46,6 +46,11 @@ def _get_validated_base_url() -> str:
     # Convertir Pydantic HttpUrl a string si es necesario
     configured_url_str = str(settings.OPENROUTER_CHAT_ENDPOINT)
     
+    # Verificar si la URL está vacía o es None
+    if not configured_url_str or configured_url_str.strip() == "":
+        logger.warning(f"  OPENROUTER_CHAT_ENDPOINT está vacío. Usando URL base por defecto: {DEFAULT_OPENROUTER_BASE_URL}")
+        return DEFAULT_OPENROUTER_BASE_URL
+    
     # Intentar remover el path específico si está presente en la URL base configurada
     # La idea es que OPENROUTER_CHAT_ENDPOINT solo contenga la URL base.
     if CHAT_COMPLETIONS_ENDPOINT_PATH in configured_url_str:
@@ -62,6 +67,11 @@ def _get_validated_base_url() -> str:
         parsed = urlparse(base_url_candidate)
         if not all([parsed.scheme, parsed.netloc]): # Debe tener scheme (http/https) y netloc (dominio)
             raise ValueError(f"La URL base '{base_url_candidate}' es inválida (falta scheme o netloc).")
+        
+        # Verificar que el scheme sea https (recomendado para APIs)
+        if parsed.scheme != 'https':
+            logger.warning(f"  URL base usa scheme '{parsed.scheme}' en lugar de 'https'. Esto puede causar problemas de seguridad.")
+        
         logger.info(f"  URL base para OpenRouter validada: {base_url_candidate}")
         return base_url_candidate
     except ValueError as e_url: # Captura ValueError de urlparse o el nuestro
@@ -113,11 +123,24 @@ class LLMClientFactory:
             self._base_url = _get_validated_base_url()
             
         if self._headers is None and SETTINGS_LOADED and settings:
+            # Verificar que la API key esté disponible
+            api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
+            if not api_key:
+                raise RuntimeError("OPENROUTER_API_KEY no está configurada en settings")
+            
+            # Verificar que la API key no esté vacía
+            if not api_key.strip():
+                raise RuntimeError("OPENROUTER_API_KEY está vacía en settings")
+            
             self._headers = {
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
             self._timeout = float(getattr(settings, 'LLM_HTTP_TIMEOUT', DEFAULT_LLM_TIMEOUT))
+            
+            logger.debug(f"Configuración del cliente LLM cargada. Base URL: {self._base_url}, Timeout: {self._timeout}s")
+        elif not SETTINGS_LOADED or not settings:
+            raise RuntimeError("Settings no disponibles para configurar el cliente LLM")
     
     async def get_client(self) -> httpx.AsyncClient:
         """
@@ -426,11 +449,20 @@ async def generate_chat_completion(
     
     logger.debug(f"CHAT LLM: Enviando solicitud a OpenRouter con {len(messages)} mensajes")
     
-    # Preparar payload
+    # Obtener parámetros desde settings
+    llm_temp = float(getattr(settings, 'LLM_TEMPERATURE', 0.7))
+    llm_max_t = int(getattr(settings, 'LLM_MAX_TOKENS', 1000))
+    llm_top_p = float(getattr(settings, 'LLM_TOP_P', 1.0))
+    llm_frequency_penalty = float(getattr(settings, 'LLM_FREQUENCY_PENALTY', 0.0))
+    llm_presence_penalty = float(getattr(settings, 'LLM_PRESENCE_PENALTY', 0.0))
+
     payload = {
         "model": openrouter_model_id,
         "messages": messages,
         "temperature": llm_temp,
+        "top_p": llm_top_p,
+        "frequency_penalty": llm_frequency_penalty,
+        "presence_penalty": llm_presence_penalty,
         "max_tokens": llm_max_t,
         "stream": False
     }
@@ -451,11 +483,6 @@ async def generate_chat_completion(
             logger.error(f"CHAT LLM: {error_msg}")
             return f"Error de configuración: {error_msg}"
             
-        headers = {
-            "Authorization": f"Bearer {openrouter_api_key}",
-            "Content-Type": "application/json"
-        }
-        
         logger.debug(f"CHAT LLM: Enviando solicitud a {endpoint_url} con payload: {json.dumps(payload, ensure_ascii=False)[:200]}...")
         
         # Realizar la petición HTTP con el cliente apropiado
@@ -464,7 +491,7 @@ async def generate_chat_completion(
             logger.debug("CHAT LLM: Usando contexto asíncrono del factory para llamada HTTP")
             async with client_factory.client_context() as safe_client:
                 # CORRECCIÓN: Usar solo el path relativo ya que el cliente tiene base_url configurado
-                response = await safe_client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload, headers=headers)
+                response = await safe_client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload)
         else:
             # Usar el cliente proporcionado o el obtenido del request
             logger.debug("CHAT LLM: Usando cliente HTTP proporcionado para llamada HTTP")
@@ -472,7 +499,7 @@ async def generate_chat_completion(
                 logger.error("CHAT LLM: Cliente HTTP es None, no se puede hacer la petición")
                 return "Error interno: Cliente HTTP no disponible"
             # CORRECCIÓN: Usar solo el path relativo ya que el cliente tiene base_url configurado
-            response = await client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload, headers=headers)
+            response = await client.post(CHAT_COMPLETIONS_ENDPOINT_PATH, json=payload)
         
         # Verificar código de estado
         if response.status_code != 200:
@@ -657,13 +684,22 @@ async def get_llm_response(
         
     messages.append({"role": "user", "content": user_content})
 
+    # Obtener parámetros desde settings
+    llm_temp = float(getattr(settings, 'LLM_TEMPERATURE', 0.7))
+    llm_max_t = int(getattr(settings, 'LLM_MAX_TOKENS', 1000))
+    llm_top_p = float(getattr(settings, 'LLM_TOP_P', 1.0))
+    llm_frequency_penalty = float(getattr(settings, 'LLM_FREQUENCY_PENALTY', 0.0))
+    llm_presence_penalty = float(getattr(settings, 'LLM_PRESENCE_PENALTY', 0.0))
+
     payload = {
         "model": openrouter_model_id,
         "messages": messages,
-        "max_tokens": llm_max_t,
         "temperature": llm_temp,
-        "stream": False # No estamos usando streaming aquí
-        # Puedes añadir otros parámetros como "top_p", "presence_penalty", etc. si es necesario
+        "top_p": llm_top_p,
+        "frequency_penalty": llm_frequency_penalty,
+        "presence_penalty": llm_presence_penalty,
+        "max_tokens": llm_max_t,
+        "stream": False
     }
 
     logger.info(f"  Enviando solicitud a OpenRouter. Modelo: '{openrouter_model_id}', Temp: {llm_temp}, MaxTokens: {llm_max_t}.")
@@ -738,6 +774,10 @@ async def get_llm_response(
     
     try:
         # Procesar la respuesta
+        if response is None:
+            logger.error(f"[{request_id_str}] La respuesta es None, no se puede procesar")
+            return "Error: No se recibió respuesta del servicio LLM"
+            
         response_data = response.json()
         # logger.debug(f"  Respuesta JSON completa de OpenRouter: {json.dumps(response_data, ensure_ascii=False, indent=2)}") # Loguear JSON completo puede ser muy verboso
 

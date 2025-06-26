@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     
     # --- Integraciones externas (variables opcionales) ---
     # Estas variables son opcionales y no causarán error si no están definidas
-    OPENROUTER_CHAT_ENDPOINT: Optional[str] = None
+    # OPENROUTER_CHAT_ENDPOINT: Optional[str] = None  # COMENTADO: Ahora es requerido
     
     # --- Caché y Rendimiento ---
     REDIS_URL: str = Field(
@@ -91,10 +91,14 @@ class Settings(BaseSettings):
     
     # --- IA: LLM (OpenRouter.ai) ---
     OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL_CHAT: str = "meta-llama/llama-3.1-8b-instruct"  # Cambiado a un modelo que sabemos que funciona
-    LLM_TEMPERATURE: float = 0.5
+    OPENROUTER_MODEL_CHAT: str = "meta-llama/llama-3-8b-instruct"  # Valor por defecto del .env
+    OPENROUTER_CHAT_ENDPOINT: str = "https://openrouter.ai/api/v1"  # URL base por defecto pero requerida
+    LLM_TEMPERATURE: float = 0.7  # Actualizado a 0.7
     LLM_MAX_TOKENS: int = 1000  # Ajustado a 1000 para coincidir con el valor en .env
     LLM_HTTP_TIMEOUT: float = 45.0  # Ajustado a 45.0 para coincidir con el valor en .env
+    LLM_TOP_P: float = 1.0  # Nuevo parámetro
+    LLM_FREQUENCY_PENALTY: float = 0.0  # Nuevo parámetro
+    LLM_PRESENCE_PENALTY: float = 0.0  # Nuevo parámetro
     
     # --- Palabras clave para salir de la conversación ---
     EXIT_CONVERSATION_KEYWORDS: List[str] = ["salir", "adiós", "cancelar", "terminar", "stop", "chao", "bye", "hasta luego"]
