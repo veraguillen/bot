@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     DATABASE_URL: PostgresDsn
 
     # --- IA: RAG, Embeddings y PGVector ---
-    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL_NAME: str = "sentence-transformers/all-mpnet-base-v2"
     VECTOR_COLLECTION_NAME: str = "chatbot_docs_v1"
     # Optimizado: 4 fragmentos es el punto óptimo para balance precisión/contexto
     RAG_DEFAULT_K: int = 4
@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     
     # --- IA: LLM (OpenRouter.ai) ---
     OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL_CHAT: str = "meta-llama/llama-3-8b-instruct"  # Corregido para usar llama-3 en lugar de llama-3.1
+    OPENROUTER_MODEL_CHAT: str = "meta-llama/llama-3.1-8b-instruct"  # Cambiado a un modelo que sabemos que funciona
     LLM_TEMPERATURE: float = 0.5
     LLM_MAX_TOKENS: int = 1000  # Ajustado a 1000 para coincidir con el valor en .env
     LLM_HTTP_TIMEOUT: float = 45.0  # Ajustado a 45.0 para coincidir con el valor en .env
